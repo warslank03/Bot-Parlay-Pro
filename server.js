@@ -68,8 +68,8 @@ bot.on('text', async (ctx) => {
 
             const promptAnalisisAPI = `${FORMAT_PROMPT_UTAMA}\n\nBerikut adalah data pertandingan live asli yang harus kamu analisis sekarang:\n${dataMentahPertandingan}`;
 
-            // KUNCI MODEL DIUBAH SESUAI LOG TERBARU LU (gemini-1.5-pro)
-            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+            // KUNCI MODEL DIUBAH SESUAI LOG TERBARU LU (gemini-pro)
+            const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
             const result = await model.generateContent(promptAnalisisAPI);
             return await ctx.reply(result.response.text());
 
