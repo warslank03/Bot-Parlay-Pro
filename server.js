@@ -9,8 +9,6 @@ app.get('/', (req, res) => res.send('Bot Parlay Pro Aktif'));
 app.listen(process.env.PORT || 3000);
 
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
-
-// Inisialisasi API menggunakan library baru
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const FORMAT_PROMPT_UTAMA = `Kamu adalah Master Analyst Parlay Profesional. Tugasmu adalah menganalisis data pertandingan sepak bola yang diberikan dan menyusunnya Wajib menggunakan format output persis seperti di bawah ini secara disiplin:
@@ -48,31 +46,42 @@ bot.on('text', async (ctx) => {
     if (ctx.chat.id.toString() !== process.env.MY_CHAT_ID) return;
     const pesan = ctx.message.text;
 
+    // JALUR 1: AMBIL JADWAL YANG BELUM MULAI HARI INI
     if (pesan.toLowerCase() === '/jadwal') {
-        await ctx.reply("⏳ Menarik data pertandingan LIVE dari API dan menyusun Analisis 10 Poin...");
+        await ctx.reply("⏳ Menarik jadwal pertandingan HARI INI yang BELUM MULAI...");
         try {
-            const res = await axios.get('https://v3.football.api-sports.io/fixtures?live=all', {
+            // Ambil tanggal hari ini format YYYY-MM-DD secara otomatis
+            const hariIni = new Date().toISOString().split('T')[0];
+            
+            const res = await axios.get(`https://v3.football.api-sports.io/fixtures?date=${hariIni}`, {
                 headers: { 'x-rapidapi-key': process.env.FOOTBALL_API_KEY }
             });
+            
             const data = res.data.response;
-            if (!data || data.length === 0) return ctx.reply("❌ Tidak ada pertandingan live saat ini di API.");
+            if (!data || data.length === 0) return ctx.reply("❌ Tidak ada jadwal pertandingan untuk hari ini di API.");
+            
+            // FILTER: Hanya ambil pertandingan yang BELUM MULAI (Status: NS = Not Started)
+            const belumMulai = data.filter(m => m.fixture.status.short === 'NS');
+            
+            if (belumMulai.length === 0) {
+                return ctx.reply("ℹ️ Semua pertandingan hari ini sudah mulai atau sudah selesai.");
+            }
             
             let dataMentahPertandingan = "";
-            data.slice(0, 4).forEach((m, index) => {
+            // Ambil maksimal 4 pertandingan teratas yang belum mulai
+            belumMulai.slice(0, 4).forEach((m, index) => {
                 let date = new Date(m.fixture.date);
                 let wib = new Date(date.getTime() + (7 * 60 * 60 * 1000));
-                let jamWib = wib.getHours() + ":" + String(wib.getMinutes()).padStart(2, '0');
+                let jamWib = String(wib.getHours()).padStart(2, '0') + ":" + String(wib.getMinutes()).padStart(2, '0');
                 
                 dataMentahPertandingan += `Match ${String.fromCharCode(65 + index)}:\n`;
                 dataMentahPertandingan += `- Liga: ${m.league.name} (${m.league.country})\n`;
                 dataMentahPertandingan += `- Waktu: ${jamWib} WIB\n`;
-                dataMentahPertandingan += `- Laga: ${m.teams.home.name} vs ${m.teams.away.name}\n`;
-                dataMentahPertandingan += `- Skor Saat Ini: ${m.goals.home} - ${m.goals.away} (Menit: ${m.fixture.status.elapsed}')\n\n`;
+                dataMentahPertandingan += `- Laga: ${m.teams.home.name} vs ${m.teams.away.name}\n\n`;
             });
 
-            const promptAnalisisAPI = `${FORMAT_PROMPT_UTAMA}\n\nBerikut adalah data pertandingan live asli yang harus kamu analisis sekarang:\n${dataMentahPertandingan}`;
+            const promptAnalisisAPI = `${FORMAT_PROMPT_UTAMA}\n\nBerikut adalah data pertandingan yang BELUM MULAI hari ini. Tolong buatkan prediksi parlaynya:\n${dataMentahPertandingan}`;
 
-            // Eksekusi kode dengan library baru
             const response = await ai.models.generateContent({
                 model: 'gemini-3.5-flash',
                 contents: promptAnalisisAPI
@@ -80,14 +89,15 @@ bot.on('text', async (ctx) => {
             return await ctx.reply(response.text);
 
         } catch (e) {
-            return ctx.reply("❌ Gagal memproses data jadwal: " + e.message);
+            return ctx.reply("❌ Gagal memproses jadwal parlay: " + e.message);
         }
-    } else {
+    } 
+    
+    // JALUR 2: INPUT MANUAL
+    else {
         await ctx.reply("⏳ Menganalisis input manual dengan format profesional 10 Poin...");
         try {
             const promptAnalisisManual = `${FORMAT_PROMPT_UTAMA}\n\nBerikut adalah data pertandingan dari user yang wajib kamu analisis:\n${pesan}`;
-            
-            // Eksekusi kode dengan library baru
             const response = await ai.models.generateContent({
                 model: 'gemini-3.5-flash',
                 contents: promptAnalisisManual
@@ -99,4 +109,4 @@ bot.on('text', async (ctx) => {
     }
 });
 
-bot.launch().then(() => console.log('✅ Bot Parlay Siap Tempur!'));
+bot.launch().then(() => console.log('✅ Bot Parlay Pre-Match Siap Tempur!'));
