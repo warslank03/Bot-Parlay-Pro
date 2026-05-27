@@ -1,6 +1,6 @@
 require('dns').setDefaultResultOrder('ipv4first');
 const { Telegraf } = require('telegraf');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const express = require('express');
 const axios = require('axios');
 
@@ -9,7 +9,9 @@ app.get('/', (req, res) => res.send('Bot Parlay Pro Aktif'));
 app.listen(process.env.PORT || 3000);
 
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Inisialisasi API menggunakan library baru
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const FORMAT_PROMPT_UTAMA = `Kamu adalah Master Analyst Parlay Profesional. Tugasmu adalah menganalisis data pertandingan sepak bola yang diberikan dan menyusunnya Wajib menggunakan format output persis seperti di bawah ini secara disiplin:
 
@@ -70,10 +72,12 @@ bot.on('text', async (ctx) => {
 
             const promptAnalisisAPI = `${FORMAT_PROMPT_UTAMA}\n\nBerikut adalah data pertandingan live asli yang harus kamu analisis sekarang:\n${dataMentahPertandingan}`;
 
-            // Menggunakan nama model 100% resmi dari dokumentasi API (bukan tebakan)
-            const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
-            const result = await model.generateContent(promptAnalisisAPI);
-            return await ctx.reply(result.response.text());
+            // Eksekusi kode dengan library baru
+            const response = await ai.models.generateContent({
+                model: 'gemini-3.5-flash',
+                contents: promptAnalisisAPI
+            });
+            return await ctx.reply(response.text);
 
         } catch (e) {
             return ctx.reply("❌ Gagal memproses data jadwal: " + e.message);
@@ -83,10 +87,12 @@ bot.on('text', async (ctx) => {
         try {
             const promptAnalisisManual = `${FORMAT_PROMPT_UTAMA}\n\nBerikut adalah data pertandingan dari user yang wajib kamu analisis:\n${pesan}`;
             
-            // Menggunakan nama model 100% resmi dari dokumentasi API (bukan tebakan)
-            const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
-            const result = await model.generateContent(promptAnalisisManual);
-            await ctx.reply(result.response.text());
+            // Eksekusi kode dengan library baru
+            const response = await ai.models.generateContent({
+                model: 'gemini-3.5-flash',
+                contents: promptAnalisisManual
+            });
+            await ctx.reply(response.text);
         } catch (e) {
              return ctx.reply("❌ Gagal: " + e.message);
         }
