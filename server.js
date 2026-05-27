@@ -76,7 +76,7 @@ bot.on('text', async (ctx) => {
         } catch (e) {
             // FALLBACK AMAN KE GEMINI-1.5-FLASH KALO PRO LIMIT
             try {
-                const modelLite = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                const modelLite = genAI.getGenerativeModel({ model: 'gemini-pro' });
                 const result = await modelLite.generateContent(promptAnalisisAPI);
                 return await ctx.reply("ℹ️ *Mode Flash (Pro sedang limit):*\n\n" + result.response.text());
             } catch (liteErr) {
@@ -90,12 +90,12 @@ bot.on('text', async (ctx) => {
         await ctx.reply("⏳ Menganalisis dengan format profesional 10 Poin...");
         try {
             const promptAnalisisManual = `${FORMAT_PROMPT_UTAMA}\n\nBerikut adalah data pertandingan dari user yang wajib kamu analisis:\n${pesan}`;
-            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+            const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
             const result = await model.generateContent(promptAnalisisManual);
             await ctx.reply(result.response.text());
         } catch (e) {
             try {
-                const modelLite = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                const modelLite = genAI.getGenerativeModel({ model: 'gemini-pro' });
                 const promptAnalisisManual = `${FORMAT_PROMPT_UTAMA}\n\nBerikut adalah data pertandingan dari user yang wajib kamu analisis:\n${pesan}`;
                 const result = await modelLite.generateContent(promptAnalisisManual);
                 await ctx.reply("ℹ️ *Mode Flash (Pro sedang limit):*\n\n" + result.response.text());
